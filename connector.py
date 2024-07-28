@@ -1,11 +1,13 @@
+''' This code is based on the example code from https://github.com/aldebaran/libqi-python/blob/master/examples/authentication_with_application.py'''
+
 import qi
 import sys 
 
 class Authenticator:
 
     def __init__(self, username, password):
-        self.username = "nao"
-        self.password = "nao6_1ki"
+        self.username = username
+        self.password = password
 
     # This method is expected by libqi and must return a dictionary containing
     # login information with the keys 'user' and 'token'.
@@ -24,10 +26,10 @@ class AuthenticatorFactory:
         return Authenticator(self.username, self.password)
 
 def getConnection() :
-    app = qi.Application(sys.argv, url="tcp://192.168.171.148:9559")
+    app = qi.Application(sys.argv, url="tcp://IP_ADDRESS:PORT")
     logins = ("nao", "OMITTED")
     factory = AuthenticatorFactory(*logins)
     app.session.setClientAuthenticatorFactory(factory)
     app.start()
-    print("NAO ROBOT SUCCESSFULLY CONNECTED !!!")
+    print("Connection success")
     return app

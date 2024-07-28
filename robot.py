@@ -10,7 +10,6 @@ import os
 import sys
 import random
 import paramiko
-import wavio
 import json
 import soundfile
 
@@ -172,7 +171,7 @@ def detect_speech(services, obj_position, answers):
     data, samplerate = soundfile.read(AUDIO_FILE)
     soundfile.write(AUDIO_FILE, data, samplerate)
 
-    with sr.AudioFile("/home/ianasten/NaoRobot/speech.wav") as source:
+    with sr.AudioFile(AUDIO_FILE) as source:
         audio = r.record(source)
 
     try:
@@ -238,7 +237,7 @@ def main():
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.load_system_host_keys()
-    ssh.connect(hostname="192.168.171.148", username="nao", password="nao6_1ki")
+    ssh.connect(hostname="IP_ADDRESS", username="username", password="password")
     scp = SCPClient(ssh.get_transport())
 
     services = memory_service, motion_service, tts, posture_service
@@ -250,7 +249,7 @@ def main():
     obj_position = 0.3, 0, 0
 
     # Get dictionary
-    txt_path = "/home/ianasten/NaoRobot/dictionary.txt"
+    txt_path = "/../dictionary.txt"
     answers = get_answers(txt_path)
 
     while listening is True:

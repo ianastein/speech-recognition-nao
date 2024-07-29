@@ -7,13 +7,13 @@ There are some requirements to run this project in your machine:
 1) The code was developed using Python 3.10. Check if your machine has this Python version installed.
 
 2) Check if your machine has the following required libraries:
-- library qi https://pypi.org/project/qi/ (Check out the step by step installation process)
+- library qi https://pypi.org/project/qi/ (Check out the step by step installation file)
 - SpeechRecognition https://pypi.org/project/SpeechRecognition/
 - PyAudio https://pypi.org/project/PyAudio/
 - scp https://pypi.org/project/scp/
 - paramiko https://pypi.org/project/paramiko/
-- json
 - soundfile https://pypi.org/project/soundfile/
+- json
 
 3) When all the libraries are successfully installed, clone the repository.
 

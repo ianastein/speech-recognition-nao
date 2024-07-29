@@ -1,6 +1,5 @@
 from connector import getConnection
 from os import path
-
 from scp import SCPClient
   
 import qi
@@ -69,7 +68,7 @@ def recognize_speech(services, obj_position, speech, answers):
 
     speech_lower = speech.lower()
 
-    # Hello OR Name Condition
+    # Hello Condition
     if (("hello") in speech_lower):
         answer_hello = answers['answer_hello']
         return tts.say(random.choice(answer_hello))
@@ -140,7 +139,7 @@ def recognize_speech(services, obj_position, speech, answers):
         answer_grab_neg_end = answers['answer_grab_neg_end']
 
         if (("red ball") in speech_lower):
-            #if (object_recognition("red")):
+            #if (detect_object(memory_service)):
                 tts.say(random.choice(answer_grab_pos) + "red ball")
                 walk_to_object(motion_service, obj_position, posture_service)
                 return pick_up_object(motion_service, obj_position)
@@ -149,7 +148,7 @@ def recognize_speech(services, obj_position, speech, answers):
                 #return tts.say(random.choice(answer_grab_neg) + "red ball" + answer_grab_neg_end)
 
         if (("green ball") in speech_lower):
-            #if (object_recognition("green")):
+            #if (detect_object(memory_service)):
                 tts.say(random.choice(answer_grab_pos) + "green ball")
                 walk_to_object(motion_service, obj_position, posture_service)
                 return pick_up_object(motion_service, obj_position)

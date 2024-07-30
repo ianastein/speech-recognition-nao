@@ -11,7 +11,9 @@ import random
 import paramiko
 import json
 import soundfile
+import cv2
 
+import numpy as np
 import speech_recognition as sr
 
 r = sr.Recognizer()
@@ -64,7 +66,7 @@ def listen(audio_service, scp):
 
 # --------------------------- SPEECH RECOGNITION FUNCTIONS -----------------------------
 def recognize_speech(services, obj_position, speech, answers):
-    memory_service, motion_service, tts, posture_service = services
+    motion_service, tts, posture_service, video_service = services
 
     speech_lower = speech.lower()
 
@@ -139,7 +141,7 @@ def recognize_speech(services, obj_position, speech, answers):
         answer_grab_neg_end = answers['answer_grab_neg_end']
 
         if (("red ball") in speech_lower):
-            #if (detect_object(memory_service)):
+            #if (detect_object(video_service)):
                 tts.say(random.choice(answer_grab_pos) + "red ball")
                 walk_to_object(motion_service, obj_position, posture_service)
                 return pick_up_object(motion_service, obj_position)
@@ -148,7 +150,7 @@ def recognize_speech(services, obj_position, speech, answers):
                 #return tts.say(random.choice(answer_grab_neg) + "red ball" + answer_grab_neg_end)
 
         if (("green ball") in speech_lower):
-            #if (detect_object(memory_service)):
+            #if (detect_object(video_service)):
                 tts.say(random.choice(answer_grab_pos) + "green ball")
                 walk_to_object(motion_service, obj_position, posture_service)
                 return pick_up_object(motion_service, obj_position)
@@ -185,13 +187,85 @@ def detect_speech(services, obj_position, answers):
 
 
 # --------------------------------- OBJECT FUNCTIONS --------------------------------
+def detect_color(img, lower_bound, upper_bound):
+    """
+    Detect regions in the image that fall within the specified color range.
+    Returns the bounding boxes of detected regions.
+    """
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    mask = cv2.inRange(hsv, lower_bound, upper_bound)
+    contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    
+    boxes = []
+    for contour in contours:
+        x, y, w, h = cv2.boundingRect(contour)
+        if w > 20 and h > 20:  # Filter out small boxes
+            boxes.append([x, y, w, h])
+    
+    return boxes
+
+def draw_boxes(img, boxes, color):
+    """
+    Draw bounding boxes on the image.
+    """
+    for (x, y, w, h) in boxes:
+        cv2.rectangle(img, (x, y), (x + w, y + h), color, 2)
+
 # Detect the object
-def detect_object(memory_service):
-    # Example of detection event, replace with actual object detection implementation
-    # This function should return the object's position (x, y, z)
-    # Here we're using a placeholder
-    # obj_position = memory_service.getData("ObjectDetected")
-    return (0, 0, 10 )
+def detect_object(video_service):
+    # Set up camera parameters
+    camera_index = 1
+    resolution = 2  # VGA resolution
+    color_space = 11  # RGB color space
+    fps = 30
+
+    cv2.namedWindow("NAO Camera Feed", cv2.WINDOW_NORMAL)
+
+    video_client = video_service.subscribeCamera("color_detection", camera_index, resolution, color_space, fps)
+
+    # Define color ranges for detection in HSV format
+    color_ranges = {
+        "red": (np.array([0, 120, 70]), np.array([10, 255, 255])),  # Adjusted for red
+        "green": (np.array([36, 100, 100]), np.array([86, 255, 255])),  # Adjusted for green
+        "blue": (np.array([94, 80, 2]), np.array([126, 255, 255]))  # Adjusted for blue
+    }
+
+    # Define colors for bounding boxes in BGR format
+    box_colors = {
+        "red": (255, 0, 0),
+        "green": (0, 255, 0),
+        "blue": (0, 0, 255)
+    }
+
+    try:
+        while True:
+            # Get the image from the camera
+            img = video_service.getImageRemote(video_client)
+            if img is None:
+                print("Failed to capture image")
+                continue
+
+            # Convert the image to a format suitable for OpenCV
+            width, height = img[0], img[1]
+            image_data = np.frombuffer(img[6], dtype=np.uint8).reshape((height, width, 3))
+
+            # Detect and draw bounding boxes for each color
+            for color_name, (lower_bound, upper_bound) in color_ranges.items():
+                boxes = detect_color(image_data, lower_bound, upper_bound)
+                draw_boxes(image_data, boxes, box_colors[color_name])
+
+            # Display the image in the window
+            cv2.imshow("NAO Camera Feed", image_data)
+
+            # Check if the user has pressed the 'q' key to exit
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+
+    finally:
+        # Clean up
+        video_service.unsubscribe(video_client)
+        cv2.destroyAllWindows()
+    return (0, 0, 10)
 
 # Walk towards the object
 def walk_to_object(motion_service, obj_position, posture_service):
@@ -227,11 +301,11 @@ def main():
     app = getConnection()
     
     # Get the services
-    memory_service = app.session.service("ALMemory")
     motion_service = app.session.service("ALMotion")
     tts = app.session.service("ALTextToSpeech")
     posture_service = app.session.service("ALRobotPosture")
     audio_service = app.session.service("ALAudioRecorder")
+    video_service = app.session.service("ALVideoDevice")
 
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -239,7 +313,7 @@ def main():
     ssh.connect(hostname="IP_ADDRESS", username="username", password="password")
     scp = SCPClient(ssh.get_transport())
 
-    services = memory_service, motion_service, tts, posture_service
+    services = motion_service, tts, posture_service, video_service
     
     # Wake up robot
     motion_service.wakeUp()
